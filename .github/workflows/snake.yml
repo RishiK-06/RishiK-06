@@ -12,8 +12,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate contribution snake
-        uses: Platane/snk@v2
+        uses: PaulHB-GitHub/git-hub-snake@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          svg_path: snake.svg
           github_user_name: RishiK-06
 
       - name: Commit snake.svg
