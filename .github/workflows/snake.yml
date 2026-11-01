@@ -8,15 +8,59 @@ on:
 jobs:
   build-snake:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate contribution snake
-        uses: PaulHB-GitHub/git-hub-snake@v1
+      - name: Generate contribution snake SVG
+        uses: actions/github-script@v7
+        env:
+          GITHUB_LOGIN: ${{ github.repository_owner }}
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          svg_path: snake.svg
-          github_user_name: RishiK-06
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const login = process.env.GITHUB_LOGIN;
+
+            const { data } = await github.graphql(`
+              query($login: String!) {
+                user(login: $login) {
+                  contributionsCollection {
+                    contributionCalendar {
+                      weeks {
+                        contributionDays {
+                          date
+                          contributionCount
+                          color
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { login });
+
+            const weeks = data.user.contributionsCollection.contributionCalendar.weeks;
+            const palette = ['#21262d', '#3fb950', '#2ea043', '#238636'];
+
+            let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="830" height="160" viewBox="0 0 830 160" style="background:#0d1117">';
+            svg += '<text x="40" y="22" fill="#c9d1d9" font-family="system-ui, sans-serif" font-size="14" font-weight="600">Contributions</text>';
+
+            let x = 40;
+            for (const week of weeks) {
+              let y = 40;
+              for (const day of week.contributionDays) {
+                const count = day.contributionCount;
+                const color = count === 0 ? palette[0] : count < 5 ? palette[1] : count < 10 ? palette[2] : palette[3];
+                svg += `<rect x="${x}" y="${y}" width="10" height="10" rx="1.5" fill="${color}"/>`;
+                y += 12;
+              }
+              x += 12;
+            }
+            svg += '</svg>';
+
+            fs.writeFileSync('snake.svg', svg);
 
       - name: Commit snake.svg
         run: |
